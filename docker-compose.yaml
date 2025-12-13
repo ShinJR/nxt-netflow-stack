@@ -1,0 +1,161 @@
+name: nexthop_flow_stack
+
+# Desenvolvido pela NextHop Solutions (https://nexthop.solutions)
+x-nexthop:
+  description: "Elastic Stack (Elasticsearch + Kibana) + Grafana + Filebeat (NetFlow). Desenvolvido pela NextHop Solutions (https://nexthop.solutions)"
+  notes: |
+    - Desenvolvido pela NextHop Solutions (https://nexthop.solutions)
+    - Elasticsearch: porta 9200
+    - Kibana: porta 5601
+    - Grafana: porta 3000
+    - Filebeat NetFlow: UDP 2055
+
+services:
+  elasticsearch:
+    x-description: "Elasticsearch (single-node). Desenvolvido pela NextHop Solutions (https://nexthop.solutions)"
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: nexthop_flow_stack-elasticsearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      # Aceita override via .env; default recomendado caso a variável não exista.
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms512m -Xmx512m}
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      # Senhas/segredos via .env (veja env.example)
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD?Defina ELASTIC_PASSWORD no .env (copie env.example)}
+      ingest.geoip.downloader.enabled: "false"
+      TZ: "${TZ:-America/Sao_Paulo}"
+    ports:
+      - "9200:9200"
+    volumes:
+      - nexthop_flow_stack_elasticsearch_data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: "1g"
+    healthcheck:
+      # Com security ligado, pode retornar 401 (ainda indica que está no ar).
+      test:
+        [
+          "CMD-SHELL",
+          "code=$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:9200 || true); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"401\" ]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - nexthop_flow_stack_net
+
+  setup_kibana_system_password:
+    x-description: "Inicialização: configura a senha do usuário kibana_system no Elasticsearch. Desenvolvido pela NextHop Solutions (https://nexthop.solutions)"
+    image: curlimages/curl:8.10.1
+    container_name: nexthop_flow_stack-setup_kibana_system_password
+    restart: "no"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        echo "Aguardando Elasticsearch responder..."
+        until curl -s -u "elastic:${ELASTIC_PASSWORD}" http://elasticsearch:9200 >/dev/null; do
+          sleep 2
+        done
+        echo "Configurando senha do kibana_system..."
+        curl -sS -u "elastic:${ELASTIC_PASSWORD}" \
+          -H 'Content-Type: application/json' \
+          -X POST \
+          http://elasticsearch:9200/_security/user/kibana_system/_password \
+          -d "{\"password\":\"${KIBANA_SYSTEM_PASSWORD}\"}" >/dev/null
+        echo "OK"
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD?Defina ELASTIC_PASSWORD no .env (copie env.example)}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD?Defina KIBANA_SYSTEM_PASSWORD no .env (copie env.example)}
+      TZ: "${TZ:-America/Sao_Paulo}"
+    networks:
+      - nexthop_flow_stack_net
+
+  kibana:
+    x-description: "Kibana UI. Desenvolvido pela NextHop Solutions (https://nexthop.solutions)"
+    image: docker.elastic.co/kibana/kibana:8.12.2
+    container_name: nexthop_flow_stack-kibana
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      ELASTICSEARCH_USERNAME: "kibana_system"
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD?Defina KIBANA_SYSTEM_PASSWORD no .env (copie env.example)}
+      SERVER_NAME: "kibana"
+      SERVER_HOST: "0.0.0.0"
+      TZ: "${TZ:-America/Sao_Paulo}"
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      setup_kibana_system_password:
+        condition: service_completed_successfully
+    networks:
+      - nexthop_flow_stack_net
+
+  filebeat:
+    x-description: "Filebeat (NetFlow). Desenvolvido pela NextHop Solutions (https://nexthop.solutions)"
+    image: docker.elastic.co/beats/filebeat:8.12.2
+    container_name: nexthop_flow_stack-filebeat
+    restart: unless-stopped
+    environment:
+      TZ: "${TZ:-America/Sao_Paulo}"
+    command: >
+      filebeat -e -strict.perms=false
+      -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
+      -E output.elasticsearch.username=elastic
+      -E output.elasticsearch.password="${ELASTIC_PASSWORD?Defina ELASTIC_PASSWORD no .env (copie env.example)}"
+      -E setup.kibana.host=kibana:5601
+      -E filebeat.modules.0.module=netflow
+      -E filebeat.modules.0.log.enabled=true
+      -E filebeat.modules.0.log.var.netflow_host=0.0.0.0
+      -E filebeat.modules.0.log.var.netflow_port=2055
+      -E setup.ilm.enabled=false
+      -E setup.template.enabled=true
+      -E setup.template.overwrite=true
+      -E setup.template.name=filebeat
+      -E setup.template.pattern=filebeat-*
+    ports:
+      - "2055:2055/udp"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+    networks:
+      - nexthop_flow_stack_net
+
+  grafana:
+    x-description: "Grafana. Desenvolvido pela NextHop Solutions (https://nexthop.solutions)"
+    image: grafana/grafana:11.2.0
+    container_name: nexthop_flow_stack-grafana
+    restart: unless-stopped
+    environment:
+      TZ: "${TZ:-America/Sao_Paulo}"
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD?Defina GRAFANA_ADMIN_PASSWORD no .env (copie env.example)}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - nexthop_flow_stack_grafana_data:/var/lib/grafana
+    networks:
+      - nexthop_flow_stack_net
+
+volumes:
+  nexthop_flow_stack_elasticsearch_data: {}
+  nexthop_flow_stack_grafana_data: {}
+
+networks:
+  # Sim — o Docker Compose cria essa rede automaticamente (a menos que você use `external: true`).
+  nexthop_flow_stack_net:
+    driver: bridge
