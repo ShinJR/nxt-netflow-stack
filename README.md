@@ -297,17 +297,35 @@ Obrigado aos apoiadores que fortalecem a iniciativa e a comunidade:
 
 ### NextHop Solutions
 
-[![NextHop Solutions](https://nexthop.solutions/wp-content/uploads/elementor/thumbs/NEXTHOP-LATERAL-1-r05q2h0ahcqhnnc4r4rn53b72q7bg3wzp3dnxbh7nk.png)](https://nexthop.solutions/)
+<a href="https://nexthop.solutions/">
+  <img
+    src="https://nexthop.solutions/wp-content/uploads/elementor/thumbs/NEXTHOP-LATERAL-1-r05q2h0ahcqhnnc4r4rn53b72q7bg3wzp3dnxbh7nk.png"
+    alt="NextHop Solutions"
+    width="260"
+  />
+</a>
 
 - Site: `https://nexthop.solutions/`
 
 ### EvoCODE IA
 
-[![EvoCODE IA](https://evocode.dev.br/lovable-uploads/c52c93b9-8fbf-4e6d-998d-46475b3ede3d.png)](https://evocode.dev.br/)
+<a href="https://evocode.dev.br/">
+  <img
+    src="https://evocode.dev.br/lovable-uploads/c52c93b9-8fbf-4e6d-998d-46475b3ede3d.png"
+    alt="EvoCODE IA"
+    width="260"
+  />
+</a>
 
 - Site: `https://evocode.dev.br/`
 
 ---
+
+## 📫 Contato
+
+- **Desenvolvedor**: Elizandro Pacheco
+- **Instagram**: [`@elizandropacheco`](https://instagram.com/elizandropacheco)
+- **WhatsApp**: [`+55 51 99871-8111`](https://wa.me/5551998718111)
 
 <a id="licenca"></a>
 ## 📄 Licença
