@@ -290,6 +290,11 @@ Isso é esperado: o Elasticsearch está com security habilitada; **401 também i
 
 ---
 
+## 📊 Grafana (recursos)
+
+- **Template de dashboard (JSON)**: [`template-grafana.json`](./template-grafana.json)
+- **Apresentação na GTER (PDF)**: [`[GTER 54] Elizandro Pacheco.pdf`](./%5BGTER%2054%5D%20Elizandro%20Pacheco.pdf)
+
 <a id="apoiadores"></a>
 ## 🤝 Apoiadores
 
