@@ -8,7 +8,7 @@ Stack de **NetFlow** para ISPs, baseada em **Elastic (Elasticsearch + Kibana)** 
 
 - **Evento**: [15ª Semana de Infraestrutura da Internet no Brasil](https://semanainfra.nic.br/)
 - **GTER/GTS**: [GTER | GTS (Semana de Infraestrutura)](https://gtergts.nic.br/)
-
+- **Apresentação 2h47** https://www.youtube.com/live/MguSch4UPGo
 ---
 
 ## 📌 Sumário
